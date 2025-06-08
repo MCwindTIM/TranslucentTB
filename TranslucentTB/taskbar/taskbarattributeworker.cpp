@@ -374,6 +374,14 @@ LRESULT TaskbarAttributeWorker::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM 
 		OnForceRefreshTaskbar(reinterpret_cast<HWND>(lParam));
 		return 0;
 	}
+	else if (uMsg == m_ApplyColorPreview)
+	{
+		txmp::TaskbarState state = static_cast<txmp::TaskbarState>(wParam);
+		uint32_t rgba = static_cast<uint32_t>(lParam);
+		Util::Color color = Util::Color::FromRGBA(rgba);
+		ApplyColorPreview(state, color);
+		return 0;
+	}
 
 	return MessageWindow::MessageHandler(uMsg, wParam, lParam);
 }
@@ -1197,6 +1205,7 @@ TaskbarAttributeWorker::TaskbarAttributeWorker(ConfigManager &cfgManager, HINSTA
 	m_SearchVisibilityChangeMessage(Window::RegisterMessage(WM_TTBSEARCHVISIBILITYCHANGE)),
 	m_FindInStartVisibilityChangeMessage(Window::RegisterMessage(WM_TTBFINDINSTARTVISIBILITYCHANGE)),
 	m_ForceRefreshTaskbar(Window::RegisterMessage(WM_TTBFORCEREFRESHTASKBAR)),
+	m_ApplyColorPreview(Window::RegisterMessage(WM_TTBAPPLYCOLORPREVIEW)),
 	m_LastExplorerPid(0),
 	m_HookDll(storageFolder, cfgManager.GetConfig().CopyDlls.value_or(true), L"ExplorerHooks.dll"),
 	m_InjectExplorerHook(m_HookDll.GetProc<PFN_INJECT_EXPLORER_HOOK>("InjectExplorerHook")),
