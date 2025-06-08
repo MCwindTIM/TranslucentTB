@@ -379,7 +379,11 @@ LRESULT TaskbarAttributeWorker::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM 
 		txmp::TaskbarState state = static_cast<txmp::TaskbarState>(wParam);
 		uint32_t rgba = static_cast<uint32_t>(lParam);
 		Util::Color color = Util::Color::FromRGBA(rgba);
-		ApplyColorPreview(state, color);
+		try {
+			ApplyColorPreview(state, color);
+		} catch (const std::out_of_range&) {
+			return 1;
+		}
 		return 0;
 	}
 
