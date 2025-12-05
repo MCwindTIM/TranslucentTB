@@ -1389,57 +1389,60 @@ void TaskbarAttributeWorker::ResetState(bool manual)
 		auto oldHooks = std::move(m_Hooks);
 		m_Hooks.clear();
 
-		if (const Window main_taskbar = Window::Find(TASKBAR))
+		for (const Window main_taskbar : Window::FindEnum(TASKBAR))
 		{
-			const auto pid = main_taskbar.process_id();
-			if (!manual)
+			if (main_taskbar.file().filename() == L"explorer.exe")
 			{
-				if (m_LastExplorerPid != 0 && pid != m_LastExplorerPid)
+				if (!manual)
 				{
-					const auto now = std::chrono::steady_clock::now();
-					if (now < m_LastExplorerRestart + std::chrono::seconds(30)) [[unlikely]]
+					if (m_LastExplorerPid != 0 && pid != m_LastExplorerPid)
 					{
-						Localization::ShowLocalizedMessageBox(IDS_EXPLORER_RESTARTED_TOO_MUCH, MB_OK | MB_ICONWARNING | MB_SETFOREGROUND, hinstance()).join();
+						const auto now = std::chrono::steady_clock::now();
+						if (now < m_LastExplorerRestart + std::chrono::seconds(30)) [[unlikely]]
+						{
+							Localization::ShowLocalizedMessageBox(IDS_EXPLORER_RESTARTED_TOO_MUCH, MB_OK | MB_ICONWARNING | MB_SETFOREGROUND, hinstance()).join();
+							ExitProcess(1);
+						}
+
+						m_LastExplorerRestart = now;
+					}
+				}
+
+				m_LastExplorerPid = pid;
+
+				m_TaskbarType = GetTaskbarType(main_taskbar);
+
+				if (m_TaskbarType == TaskbarType::XAML)
+				{
+					const HRESULT hr = m_InjectExplorerTAP(main_taskbar, IID_PPV_ARGS(m_TaskbarService.put()));
+					if (hr == HRESULT_FROM_WIN32(ERROR_PRODUCT_VERSION))
+					{
+						Localization::ShowLocalizedMessageBox(IDS_RESTART_REQUIRED, MB_OK | MB_ICONWARNING | MB_SETFOREGROUND, hinstance()).join();
 						ExitProcess(1);
 					}
+					else
+					{
+						HresultVerify(hr, spdlog::level::critical, L"Failed to initialize XAML Diagnostics.");
+					}
 
-					m_LastExplorerRestart = now;
+					HresultVerify(m_TaskbarService->RestoreAllTaskbarsToDefaultWhenProcessDies(GetCurrentProcessId()), spdlog::level::warn, L"Couldn't configure TAP to restore taskbar appearance once " APP_NAME L" dies.");
 				}
-			}
-
-			m_LastExplorerPid = pid;
-
-			m_TaskbarType = GetTaskbarType(main_taskbar);
-
-			if (m_TaskbarType == TaskbarType::XAML)
-			{
-				const HRESULT hr = m_InjectExplorerTAP(main_taskbar, IID_PPV_ARGS(m_TaskbarService.put()));
-				if (hr == HRESULT_FROM_WIN32(ERROR_PRODUCT_VERSION))
+				else if (m_TaskbarType != TaskbarType::Unknown)
 				{
-					Localization::ShowLocalizedMessageBox(IDS_RESTART_REQUIRED, MB_OK | MB_ICONWARNING | MB_SETFOREGROUND, hinstance()).join();
-					ExitProcess(1);
+					if (!m_IsBlurAccentStateSupported)
+					{
+						m_ConfigManager.UpgradeBlur();
+					}
 				}
 				else
 				{
-					HresultVerify(hr, spdlog::level::critical, L"Failed to initialize XAML Diagnostics.");
+					// unknown taskbar type - we might've detected explorer too early. do nothing for now. we should get a refresh later and be able to detect it.
+					return;
 				}
 
-				HresultVerify(m_TaskbarService->RestoreAllTaskbarsToDefaultWhenProcessDies(GetCurrentProcessId()), spdlog::level::warn, L"Couldn't configure TAP to restore taskbar appearance once " APP_NAME L" dies.");
+				InsertTaskbar(GetTaskbarMonitor(main_taskbar), main_taskbar);
+				break; // only one main taskbar.
 			}
-			else if (m_TaskbarType != TaskbarType::Unknown)
-			{
-				if (!m_IsBlurAccentStateSupported)
-				{
-					m_ConfigManager.UpgradeBlur();
-				}
-			}
-			else
-			{
-				// unknown taskbar type - we might've detected explorer too early. do nothing for now. we should get a refresh later and be able to detect it.
-				return;
-			}
-
-			InsertTaskbar(GetTaskbarMonitor(main_taskbar), main_taskbar);
 		}
 
 		for (const Window secondtaskbar : Window::FindEnum(SECONDARY_TASKBAR))
