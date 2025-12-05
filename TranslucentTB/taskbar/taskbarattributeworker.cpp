@@ -1391,7 +1391,7 @@ void TaskbarAttributeWorker::ResetState(bool manual)
 
 		for (const Window main_taskbar : Window::FindEnum(TASKBAR))
 		{
-			if (main_taskbar.file().filename() == L"explorer.exe")
+			if (main_taskbar.file().value_or({}).filename() == L"explorer.exe")
 			{
 				if (!manual)
 				{
