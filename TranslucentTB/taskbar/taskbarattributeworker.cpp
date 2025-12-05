@@ -1393,6 +1393,7 @@ void TaskbarAttributeWorker::ResetState(bool manual)
 		{
 			if (main_taskbar.file().value_or({}).filename() == L"explorer.exe")
 			{
+				const auto pid = main_taskbar.process_id();
 				if (!manual)
 				{
 					if (m_LastExplorerPid != 0 && pid != m_LastExplorerPid)
