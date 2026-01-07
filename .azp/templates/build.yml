@@ -22,6 +22,8 @@ steps:
   displayName: Update version info
 - powershell: $(Build.SourcesDirectory)/.azp/scripts/update-manifest.ps1 -BuildType "${{ parameters.buildType }}"
   displayName: Update app manifest
+- script: $env:VCPKG_INSTALLATION_ROOT\bootstrap-vcpkg.bat
+  displayName: 'Bootstrap vcpkg'
 - script: $env:VCPKG_INSTALLATION_ROOT\vcpkg.exe integrate install
   displayName: 'Integrate vcpkg'
 - task: NuGetAuthenticate@1
