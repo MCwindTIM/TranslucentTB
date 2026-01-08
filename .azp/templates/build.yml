@@ -24,6 +24,10 @@ steps:
   displayName: Update app manifest
 - script: C:\vcpkg\vcpkg.exe integrate install
   displayName: 'Integrate vcpkg'
+- task: NuGetToolInstaller@1
+  displayName: 'Install NuGet'
+  inputs:
+    versionSpec: '>=7.0.1'
 - task: NuGetAuthenticate@1
   displayName: 'Authenticate NuGet'
 - task: NuGetCommand@2
