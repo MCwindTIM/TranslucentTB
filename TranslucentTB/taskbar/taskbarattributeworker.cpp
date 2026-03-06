@@ -5,6 +5,7 @@
 
 #include "constants.hpp"
 #include "../localization.hpp"
+#include "../uwp/uwp.hpp"
 #include "../../ProgramLog/error/win32.hpp"
 #include "../../ProgramLog/error/winrt.hpp"
 #include "undoc/explorer.hpp"
@@ -1427,6 +1428,11 @@ void TaskbarAttributeWorker::ResetState(bool manual)
 					}
 
 					HresultVerify(m_TaskbarService->RestoreAllTaskbarsToDefaultWhenProcessDies(GetCurrentProcessId()), spdlog::level::warn, L"Couldn't configure TAP to restore taskbar appearance once " APP_NAME L" dies.");
+
+					if (const auto fullName = UWP::GetPackageFullName())
+					{
+						HresultVerify(m_TaskbarService->KillExplorerWhenPackageUninstalls(fullName->c_str()), spdlog::level::warn, L"Couldn't configure TAP to kill Explorer once " APP_NAME L" is uninstalled.");
+					}
 				}
 				else if (m_TaskbarType != TaskbarType::Unknown)
 				{
